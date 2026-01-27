@@ -1,0 +1,295 @@
+name: stremio-stack
+
+services:
+  # ---------------------------------------------------------------------------
+  # Shared infra (consolidated)
+  # ---------------------------------------------------------------------------
+  postgres:
+    # Postgres 17 + DocumentDB extension (required by FerretDB).
+    # We also use it as the single Postgres instance for Comet/Zilean/Trakt-addon.
+    image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
+    container_name: stremio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+      - ./initdb/100-create-dbs.sh:/docker-entrypoint-initdb.d/100-create-dbs.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: stremio-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ferretdb:
+    # Mongo wire-protocol server backed by Postgres+DocumentDB extension.
+    image: ghcr.io/ferretdb/ferretdb:2.7.0
+    container_name: ferretdb
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${FERRETDB_DB}
+    # No need to publish this port publicly; MediaFusion talks to it over Docker network.
+
+  # ---------------------------------------------------------------------------
+  # Stream sources (AIOStreams upstreams)
+  # ---------------------------------------------------------------------------
+  comet:
+    image: ghcr.io/g0ldyy/comet@sha256:1d423aafbd57bc16de1a936b8822279762ccd599c5fccebc2e99d1f47e8b2ce3
+    container_name: comet
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_TYPE: postgresql
+      # Comet expects user:pass@host:port/db (no scheme)
+      DATABASE_URL: ${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${COMET_DB}
+      FASTAPI_PORT: 8000
+      ADMIN_DASHBOARD_PASSWORD: ${COMET_ADMIN_PASSWORD}
+      # Debrid
+      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
+      # No anime
+      ANIME_MAPPING_ENABLED: "false"
+    ports:
+      - ${COMET_PORT}:8000
+
+  zilean:
+    image: ipromknight/zilean:v3.5.0
+    container_name: zilean
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Zilean__EnableDashboard: "true"
+      Zilean__Database__ConnectionString: Host=postgres;Database=${ZILEAN_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Include Error Detail=true;Timeout=30;CommandTimeout=3600
+      Zilean__Imdb__UseAllCores: "true"
+      Zilean__Imdb__UseLucene: "true"
+      Zilean__Parsing__BatchSize: "100000"
+      Zilean__Dmm_ScrapeSchedule: "32 * * * *"
+    ports:
+      - ${ZILEAN_PORT}:8181
+
+  stremthru:
+    image: muniftanjim/stremthru:0.96.3
+    container_name: stremthru
+    restart: unless-stopped
+    environment:
+      STREMTHRU_BASE_URL: ${STREMTHRU_BASE_URL}
+      STREMTHRU_PORT: 8080
+      STREMTHRU_LOG_LEVEL: INFO
+      STREMTHRU_LOG_FORMAT: json
+      STREMTHRU_VAULT_SECRET: ${STREMTHRU_VAULT_SECRET}
+      # Store creds: username:store_name:store_token (use * as fallback username)
+      STREMTHRU_STORE_AUTH: "*:${STREMTHRU_STORE_NAME}:${REAL_DEBRID_API_KEY}"
+      # Content proxy on by default for the store
+      STREMTHRU_STORE_CONTENT_PROXY: "${STREMTHRU_STORE_NAME}:true"
+      STREMTHRU_CONTENT_PROXY_CONNECTION_LIMIT: "*:0"
+      # Keep StremThru on sqlite (avoids extra DB/user mgmt)
+      STREMTHRU_DATABASE_URI: sqlite:///app/data/stremthru.sqlite
+    volumes:
+      - ./data/stremthru:/app/data
+    ports:
+      - ${STREMTHRU_PORT}:8080
+
+  browserless:
+    # Used by MediaFusion (Playwright CDP)
+    image: ghcr.io/browserless/chromium:latest
+    container_name: browserless
+    restart: unless-stopped
+    environment:
+      TIMEOUT: "-1"
+    ports:
+      - ${BROWSERLESS_PORT}:3000
+
+  mediafusion:
+    image: mhdzumair/mediafusion:4.3.35
+    container_name: mediafusion
+    restart: unless-stopped
+    depends_on:
+      ferretdb:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      browserless:
+        condition: service_started
+    environment:
+      HOST_URL: ${MEDIAFUSION_HOST_URL}
+      SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
+      API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
+      LOGGING_LEVEL: INFO
+      # FerretDB (Mongo wire protocol)
+      MONGO_URI: mongodb://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ferretdb:27017/${MEDIAFUSION_MONGO_DB}
+      # Shared redis (use db 1)
+      REDIS_URL: redis://redis:6379/1
+      # Browserless (default matches docs, but set explicitly)
+      PLAYWRIGHT_CDP_URL: ws://browserless:3000?blockAds=true&stealth=true
+      # Debrid
+      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
+      # Don’t use Torrentio
+      IS_SCRAP_FROM_TORRENTIO: "false"
+    ports:
+      - ${MEDIAFUSION_PORT}:8000
+
+  mediafusion_scheduler:
+    image: mhdzumair/mediafusion:4.3.35
+    container_name: mediafusion-scheduler
+    restart: unless-stopped
+    command: ["dramatiq", "api.task", "-p", "1", "-t", "4"]
+    depends_on:
+      mediafusion:
+        condition: service_started
+    environment:
+      HOST_URL: ${MEDIAFUSION_HOST_URL}
+      SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
+      API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
+      LOGGING_LEVEL: INFO
+      MONGO_URI: mongodb://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ferretdb:27017/${MEDIAFUSION_MONGO_DB}
+      REDIS_URL: redis://redis:6379/1
+      PLAYWRIGHT_CDP_URL: ws://browserless:3000?blockAds=true&stealth=true
+      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
+      IS_SCRAP_FROM_TORRENTIO: "false"
+
+  # ---------------------------------------------------------------------------
+  # Core addons (installed in Stremio)
+  # ---------------------------------------------------------------------------
+  aiostreams:
+    image: ghcr.io/viren070/aiostreams:v2.22.0
+    container_name: aiostreams
+    restart: unless-stopped
+    depends_on:
+      stremthru:
+        condition: service_started
+    environment:
+      ADDON_NAME: ${AIOSTREAMS_ADDON_NAME}
+      ADDON_ID: ${AIOSTREAMS_ADDON_ID}
+      PORT: 3000
+      BASE_URL: ${AIOSTREAMS_BASE_URL}
+      SECRET_KEY: ${AIOSTREAMS_SECRET_KEY}
+      ADDON_PASSWORD: ${AIOSTREAMS_ADDON_PASSWORD}
+      DATABASE_URI: sqlite:///app/data/db.sqlite
+      BUILTIN_STREMTHRU_URL: http://stremthru:8080
+      # No usenet vars set.
+    volumes:
+      - ./data/aiostreams:/app/data
+    ports:
+      - ${AIOSTREAMS_PORT}:3000
+
+  aiometadata:
+    image: ghcr.io/cedya77/aiometadata@sha256:e07705801101bf23a486975f2769bda98cb64b29d2fa9f7713d2141aad356b93
+    container_name: aiometadata
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 3232
+      HOST_NAME: ${AIOMETADATA_HOST_NAME}
+      NODE_ENV: production
+      LOG_LEVEL: info
+      DATABASE_URI: sqlite://addon/data/db.sqlite
+      REDIS_URL: redis://redis:6379/0
+      TMDB_API: ${TMDB_API}
+      TVDB_API_KEY: ${TVDB_API_KEY}
+      FANART_API_KEY: ${FANART_API_KEY}
+      RPDB_API_KEY: ${RPDB_API_KEY}
+      MDBLIST_API_KEY: ${MDBLIST_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      # disable MAL warmup (anime-related)
+      MAL_WARMUP_ENABLED: "false"
+      MAL_WARMUP_SCHEDULE: "false"
+      MAL_WARMUP_PRIORITY: "false"
+    volumes:
+      - ./data/aiometadata:/app/addon/data
+    ports:
+      - ${AIOMETADATA_PORT}:3232
+
+  aiolists:
+    image: stremio-stack-aiolists:latest
+    container_name: aiolists
+    restart: unless-stopped
+    environment:
+      PORT: 7000
+      NODE_ENV: production
+      TMDB_BEARER_TOKEN: ${TMDB_BEARER_TOKEN}
+      TMDB_REDIRECT_URI: ${TMDB_REDIRECT_URI}
+    ports:
+      - ${AIOLISTS_PORT}:7000
+
+  stremio-ai-search:
+    image: stremio-stack-stremio-ai-search:latest
+    container_name: stremio-ai-search
+    restart: unless-stopped
+    environment:
+      PORT: 7000
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      TMDB_API_KEY: ${TMDB_API}
+      TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
+      TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
+      RPDB_API_KEY: ${RPDB_API_KEY}
+      ENCRYPTION_KEY: ${STREMIO_AI_ENCRYPTION_KEY}
+      ENABLE_LOGGING: true
+    ports:
+      - ${STREMIO_AI_SEARCH_PORT}:7000
+
+  # multi account manager
+  syncio:
+    image: ghcr.io/iamneur0/syncio:public-v0.4.0
+    container_name: syncio
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${SYNCIO_JWT_SECRET}
+      ENCRYPTION_KEY: ${SYNCIO_ENCRYPTION_KEY}
+    volumes:
+      - ./data/syncio:/app/data
+    ports:
+      - ${SYNCIO_PORT_FE}:3000
+      - ${SYNCIO_PORT_BE}:4000
+
+  # Scrobble/watch-history tracking (Trakt)
+  stremio-trakt-addon:
+    image: reddravenn/stremio-trakt-addon
+    container_name: stremio-trakt-addon
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      PORT: 7000
+      BASE_URL: ${STREMIO_TRAKT_ADDON_BASE_URL}
+      DB_USER: ${POSTGRES_USER}
+      DB_HOST: postgres
+      DB_NAME: ${TRAKT_DB}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
+      TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
+      LOG_LEVEL: info
+      NODE_ENV: production
+    volumes:
+      - ./data/stremio-trakt-addon/cache:/usr/src/app/cache
+      - ./data/stremio-trakt-addon/log:/usr/src/app/log
+    ports:
+      - ${STREMIO_TRAKT_ADDON_PORT}:7000
