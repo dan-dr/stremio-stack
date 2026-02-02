@@ -5,15 +5,51 @@ services:
   # Shared infra (consolidated)
   # ---------------------------------------------------------------------------
   postgres:
-    # Postgres 17 + DocumentDB extension (required by FerretDB).
-    # We also use it as the single Postgres instance for Comet/Zilean/Trakt-addon.
-    image: ghcr.io/ferretdb/postgres-documentdb:17-0.107.0-ferretdb-2.7.0
+    # Postgres 17
+    # We also use it as the single Postgres instance for MediaFusion/Comet/Zilean/Trakt-addon.
+    image: postgres:17-alpine
     container_name: stremio-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    command:
+      - "postgres"
+      - "-c"
+      - "shared_buffers=256MB"
+      - "-c"
+      - "effective_cache_size=768MB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=16MB"
+      - "-c"
+      - "huge_pages=off"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+      - "-c"
+      - "max_worker_processes=8"
+      - "-c"
+      - "max_parallel_workers_per_gather=2"
+      - "-c"
+      - "max_parallel_workers=4"
+      - "-c"
+      - "max_parallel_maintenance_workers=2"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
       - ./initdb/100-create-dbs.sh:/docker-entrypoint-initdb.d/100-create-dbs.sh:ro
@@ -36,18 +72,6 @@ services:
       timeout: 5s
       retries: 10
 
-  ferretdb:
-    # Mongo wire-protocol server backed by Postgres+DocumentDB extension.
-    image: ghcr.io/ferretdb/ferretdb:2.7.0
-    container_name: ferretdb
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      FERRETDB_POSTGRESQL_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${FERRETDB_DB}
-    # No need to publish this port publicly; MediaFusion talks to it over Docker network.
-
   # ---------------------------------------------------------------------------
   # Stream sources (AIOStreams upstreams)
   # ---------------------------------------------------------------------------
@@ -61,7 +85,7 @@ services:
     environment:
       DATABASE_TYPE: postgresql
       # Comet expects user:pass@host:port/db (no scheme)
-      DATABASE_URL: ${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${COMET_DB}
+      DATABASE_URL: ${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${COMET_DB}
       FASTAPI_PORT: 8000
       ADMIN_DASHBOARD_PASSWORD: ${COMET_ADMIN_PASSWORD}
       # Debrid
@@ -110,23 +134,14 @@ services:
     ports:
       - ${STREMTHRU_PORT}:8080
 
-  browserless:
-    # Used by MediaFusion (Playwright CDP)
-    image: ghcr.io/browserless/chromium:latest
-    container_name: browserless
-    restart: unless-stopped
-    environment:
-      TIMEOUT: "-1"
-    ports:
-      - ${BROWSERLESS_PORT}:3000
-
+  ###################
+  ### MEDIAFUSION ###
+  ###################
   mediafusion:
     image: mhdzumair/mediafusion:4.3.35
     container_name: mediafusion
     restart: unless-stopped
     depends_on:
-      ferretdb:
-        condition: service_started
       redis:
         condition: service_healthy
       browserless:
@@ -136,22 +151,23 @@ services:
       SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
       API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
       LOGGING_LEVEL: INFO
-      # FerretDB (Mongo wire protocol)
-      MONGO_URI: mongodb://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ferretdb:27017/${MEDIAFUSION_MONGO_DB}
+      # PostgreSQL (native)
+      POSTGRES_URI: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${MEDIAFUSION_DB}
+      MONGO_URI: mongodb://mongo:27017/mediafusion
       # Shared redis (use db 1)
       REDIS_URL: redis://redis:6379/1
-      # Browserless (default matches docs, but set explicitly)
-      PLAYWRIGHT_CDP_URL: ws://browserless:3000?blockAds=true&stealth=true
+      # Browserless
+      PLAYWRIGHT_CDP_URL: ws://browserless:${BROWSERLESS_PORT}?blockAds=true&stealth=true
       # Debrid
       REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
-      # Don’t use Torrentio
-      IS_SCRAP_FROM_TORRENTIO: "false"
+      # Don't use Torrentio
+      IS_SCRAP_FROM_TORRENTIO: "true"
     ports:
       - ${MEDIAFUSION_PORT}:8000
 
-  mediafusion_scheduler:
+  mediafusion-dramatiq-worker:
     image: mhdzumair/mediafusion:4.3.35
-    container_name: mediafusion-scheduler
+    container_name: mediafusion-dramatiq-worker
     restart: unless-stopped
     command: ["dramatiq", "api.task", "-p", "1", "-t", "4"]
     depends_on:
@@ -161,16 +177,43 @@ services:
       HOST_URL: ${MEDIAFUSION_HOST_URL}
       SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
       API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
+      MONGO_URI: mongodb://mongo:27017/mediafusion
       LOGGING_LEVEL: INFO
-      MONGO_URI: mongodb://${POSTGRES_USER}:${POSTGRES_PASSWORD}@ferretdb:27017/${MEDIAFUSION_MONGO_DB}
+      POSTGRES_URI: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${MEDIAFUSION_DB}
       REDIS_URL: redis://redis:6379/1
-      PLAYWRIGHT_CDP_URL: ws://browserless:3000?blockAds=true&stealth=true
+      PLAYWRIGHT_CDP_URL: ws://browserless:${BROWSERLESS_PORT}?blockAds=true&stealth=true
       REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
-      IS_SCRAP_FROM_TORRENTIO: "false"
+      IS_SCRAP_FROM_TORRENTIO: "true"
+      
+  # mongo:
+  #   image: bitnami/mongodb
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./data/mongodb:/bitnami/mongodb
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - ./data/mongodb:/data/db
 
-  # ---------------------------------------------------------------------------
-  # Core addons (installed in Stremio)
-  # ---------------------------------------------------------------------------
+  browserless:
+    # Used by MediaFusion (Playwright CDP)
+    image: ghcr.io/browserless/chromium:v2.38.4
+    container_name: browserless
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/json/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    environment:
+      TIMEOUT: "-1"
+    ports:
+      - ${BROWSERLESS_PORT}:3000
+
+  ###########
+  ### AIO ###
+  ###########
   aiostreams:
     image: ghcr.io/viren070/aiostreams:v2.22.0
     container_name: aiostreams
@@ -187,6 +230,12 @@ services:
       ADDON_PASSWORD: ${AIOSTREAMS_ADDON_PASSWORD}
       DATABASE_URI: sqlite:///app/data/db.sqlite
       BUILTIN_STREMTHRU_URL: http://stremthru:8080
+      MEDIAFUSION_URL: http://mediafusion:8000
+      MEDIAFUSION_API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
+      REGEX_FILTER_ACCESS: all
+      STREMTHRU_TORZ_URL: http://stremthru:8080/stremio/torz
+      STREMTHRU_STORE_URL: http://stremthru:8080/stremio/store
+      STREAM_URL_MAPPINGS: '{"http://stremthru:8080":"http://ddyo:8447","http://mediafusion:8000":"http://ddyo:8001","http://comet:8000":"http://ddyo:8989"}'
       # No usenet vars set.
     volumes:
       - ./data/aiostreams:/app/data
@@ -207,12 +256,15 @@ services:
       LOG_LEVEL: info
       DATABASE_URI: sqlite://addon/data/db.sqlite
       REDIS_URL: redis://redis:6379/0
-      TMDB_API: ${TMDB_API}
+      TMDB_API: ${TMDB_API_KEY}
       TVDB_API_KEY: ${TVDB_API_KEY}
       FANART_API_KEY: ${FANART_API_KEY}
       RPDB_API_KEY: ${RPDB_API_KEY}
       MDBLIST_API_KEY: ${MDBLIST_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      CACHE_WARMUP_UUIDS: 2c40fe2d-631a-42b7-a7ac-d860131e9803
+      CACHE_WARMUP_MODE: comprehensive
+      CATALOG_LIST_ITEMS_SIZE: 40
       # disable MAL warmup (anime-related)
       MAL_WARMUP_ENABLED: "false"
       MAL_WARMUP_SCHEDULE: "false"
@@ -234,21 +286,22 @@ services:
     ports:
       - ${AIOLISTS_PORT}:7000
 
-  stremio-ai-search:
-    image: stremio-stack-stremio-ai-search:latest
-    container_name: stremio-ai-search
-    restart: unless-stopped
-    environment:
-      PORT: 7000
-      GEMINI_API_KEY: ${GEMINI_API_KEY}
-      TMDB_API_KEY: ${TMDB_API}
-      TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
-      TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
-      RPDB_API_KEY: ${RPDB_API_KEY}
-      ENCRYPTION_KEY: ${STREMIO_AI_ENCRYPTION_KEY}
-      ENABLE_LOGGING: true
-    ports:
-      - ${STREMIO_AI_SEARCH_PORT}:7000
+  ### MISC ###
+  # stremio-ai-search:
+  #   image: stremio-stack-stremio-ai-search:latest
+  #   container_name: stremio-ai-search
+  #   restart: unless-stopped
+  #   environment:
+  #     PORT: 7000
+  #     GEMINI_API_KEY: ${GEMINI_API_KEY}
+  #     TMDB_API_KEY: ${TMDB_API_KEY}
+  #     TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
+  #     TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
+  #     RPDB_API_KEY: ${RPDB_API_KEY}
+  #     ENCRYPTION_KEY: ${STREMIO_AI_ENCRYPTION_KEY}
+  #     ENABLE_LOGGING: true
+  #   ports:
+  #     - ${STREMIO_AI_SEARCH_PORT}:7000
 
   # multi account manager
   syncio:
@@ -258,6 +311,7 @@ services:
     environment:
       JWT_SECRET: ${SYNCIO_JWT_SECRET}
       ENCRYPTION_KEY: ${SYNCIO_ENCRYPTION_KEY}
+      DATABASE_URL: "file:/app/data/sqlite.db"
     volumes:
       - ./data/syncio:/app/data
     ports:
@@ -265,31 +319,48 @@ services:
       - ${SYNCIO_PORT_BE}:4000
 
   # Scrobble/watch-history tracking (Trakt)
-  stremio-trakt-addon:
-    image: reddravenn/stremio-trakt-addon
-    container_name: stremio-trakt-addon
+  # stremio-trakt-addon:
+  #   image: reddravenn/stremio-trakt-addon
+  #   container_name: stremio-trakt-addon
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     PORT: 7000
+  #     BASE_URL: ${STREMIO_TRAKT_ADDON_BASE_URL}
+  #     DB_USER: ${POSTGRES_USER}
+  #     DB_HOST: postgres
+  #     DB_NAME: ${TRAKT_DB}
+  #     DB_PASSWORD: ${POSTGRES_PASSWORD}
+  #     DB_PORT: ${POSTGRES_PORT}
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #     TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
+  #     TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
+  #     LOG_LEVEL: info
+  #     NODE_ENV: production
+  #   volumes:
+  #     - ./data/stremio-trakt-addon/cache:/usr/src/app/cache
+  #     - ./data/stremio-trakt-addon/log:/usr/src/app/log
+  #   ports:
+  #     - ${STREMIO_TRAKT_ADDON_PORT}:7000
+
+  watchly:
+    image: ghcr.io/timilsinabimal/watchly:1.7.0
+    container_name: watchly
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     environment:
-      PORT: 7000
-      BASE_URL: ${STREMIO_TRAKT_ADDON_BASE_URL}
-      DB_USER: ${POSTGRES_USER}
-      DB_HOST: postgres
-      DB_NAME: ${TRAKT_DB}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
-      DB_PORT: 5432
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      TRAKT_CLIENT_ID: ${TRAKT_CLIENT_ID}
-      TRAKT_CLIENT_SECRET: ${TRAKT_CLIENT_SECRET}
-      LOG_LEVEL: info
-      NODE_ENV: production
-    volumes:
-      - ./data/stremio-trakt-addon/cache:/usr/src/app/cache
-      - ./data/stremio-trakt-addon/log:/usr/src/app/log
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TOKEN_SALT: ${WATCHLY_TOKEN_SALT}
+      HOST_NAME: ${HOST_BASE_URL}:${WATCHLY_PORT}
+      TOKEN_TTL_SECONDS: 0
+      AUTO_UPDATE_CATALOGS: true
+      PORT: 8000
+      REDIS_URL: redis://redis:6379/2
     ports:
-      - ${STREMIO_TRAKT_ADDON_PORT}:7000
+      - ${WATCHLY_PORT}:8000
+    depends_on:
+      - redis
