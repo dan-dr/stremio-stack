@@ -1,4 +1,4 @@
-name: stremio-stack
+name: stremio
 
 services:
   # ---------------------------------------------------------------------------
@@ -221,6 +221,8 @@ services:
     depends_on:
       stremthru:
         condition: service_started
+      redis:
+        condition: service_healthy
     environment:
       ADDON_NAME: ${AIOSTREAMS_ADDON_NAME}
       ADDON_ID: ${AIOSTREAMS_ADDON_ID}
@@ -236,6 +238,10 @@ services:
       STREMTHRU_TORZ_URL: http://stremthru:8080/stremio/torz
       STREMTHRU_STORE_URL: http://stremthru:8080/stremio/store
       STREAM_URL_MAPPINGS: '{"http://stremthru:8080":"http://ddyo:8447","http://mediafusion:8000":"http://ddyo:8001","http://comet:8000":"http://ddyo:8989"}'
+      # Redis for persistent caching (db 2 - db 0 is aiometadata, db 1 is mediafusion)
+      REDIS_URI: redis://redis:6379/2
+      # Cache streams for 48 hours (172800s) to benefit from daily prefetcher runs
+      STREAM_CACHE_TTL: "172800"
       # No usenet vars set.
     volumes:
       - ./data/aiostreams:/app/data
@@ -305,7 +311,7 @@ services:
 
   # multi account manager
   syncio:
-    image: ghcr.io/iamneur0/syncio:public-v0.4.0
+    image: ghcr.io/iamneur0/syncio:private-v0.4.0
     container_name: syncio
     restart: unless-stopped
     environment:
@@ -347,6 +353,37 @@ services:
   #     - ./data/stremio-trakt-addon/log:/usr/src/app/log
   #   ports:
   #     - ${STREMIO_TRAKT_ADDON_PORT}:7000
+
+  # ---------------------------------------------------------------------------
+  # Streams Prefetcher - pre-cache addon streams for instant playback
+  # Schedule managed externally via OpenClaw cron jobs
+  # ---------------------------------------------------------------------------
+  streams-prefetcher:
+    image: registry.gitlab.com/deejay189393/streams-prefetcher:latest
+    container_name: streams-prefetcher
+    restart: unless-stopped
+    environment:
+      TZ: Asia/Jerusalem
+      LOG_LEVEL: INFO
+      LOG_FORMAT: json
+    volumes:
+      - ./data/streams-prefetcher:/app/data
+    ports:
+      - ${STREAMS_PREFETCHER_PORT:-5000}:5000
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   watchly:
     image: ghcr.io/timilsinabimal/watchly:1.7.0
