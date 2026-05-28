@@ -88,29 +88,27 @@ services:
       DATABASE_URL: ${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${COMET_DB}
       FASTAPI_PORT: 8000
       ADMIN_DASHBOARD_PASSWORD: ${COMET_ADMIN_PASSWORD}
-      # Debrid
-      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
       # No anime
       ANIME_MAPPING_ENABLED: "false"
     ports:
       - ${COMET_PORT}:8000
 
-  zilean:
-    image: ipromknight/zilean:v3.5.0
-    container_name: zilean
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      Zilean__EnableDashboard: "true"
-      Zilean__Database__ConnectionString: Host=postgres;Database=${ZILEAN_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Include Error Detail=true;Timeout=30;CommandTimeout=3600
-      Zilean__Imdb__UseAllCores: "true"
-      Zilean__Imdb__UseLucene: "true"
-      Zilean__Parsing__BatchSize: "100000"
-      Zilean__Dmm_ScrapeSchedule: "32 * * * *"
-    ports:
-      - ${ZILEAN_PORT}:8181
+  # zilean:
+  #   image: ipromknight/zilean:v3.5.0
+  #   container_name: zilean
+  #   restart: unless-stopped
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     Zilean__EnableDashboard: "true"
+  #     Zilean__Database__ConnectionString: Host=postgres;Database=${ZILEAN_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Include Error Detail=true;Timeout=30;CommandTimeout=3600
+  #     Zilean__Imdb__UseAllCores: "true"
+  #     Zilean__Imdb__UseLucene: "true"
+  #     Zilean__Parsing__BatchSize: "100000"
+  #     Zilean__Dmm_ScrapeSchedule: "32 * * * *"
+  #   ports:
+  #     - ${ZILEAN_PORT}:8181
 
   stremthru:
     image: muniftanjim/stremthru:0.96.3
@@ -122,10 +120,6 @@ services:
       STREMTHRU_LOG_LEVEL: INFO
       STREMTHRU_LOG_FORMAT: json
       STREMTHRU_VAULT_SECRET: ${STREMTHRU_VAULT_SECRET}
-      # Store creds: username:store_name:store_token (use * as fallback username)
-      STREMTHRU_STORE_AUTH: "*:${STREMTHRU_STORE_NAME}:${REAL_DEBRID_API_KEY}"
-      # Content proxy on by default for the store
-      STREMTHRU_STORE_CONTENT_PROXY: "${STREMTHRU_STORE_NAME}:true"
       STREMTHRU_CONTENT_PROXY_CONNECTION_LIMIT: "*:0"
       # Keep StremThru on sqlite (avoids extra DB/user mgmt)
       STREMTHRU_DATABASE_URI: sqlite:///app/data/stremthru.sqlite
@@ -138,66 +132,36 @@ services:
   ### MEDIAFUSION ###
   ###################
   mediafusion:
-    image: mhdzumair/mediafusion:4.3.35
+    image: mhdzumair/mediafusion:5.5.2
     container_name: mediafusion
     restart: unless-stopped
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
       browserless:
-        condition: service_started
+        condition: service_healthy
     environment:
       HOST_URL: ${MEDIAFUSION_HOST_URL}
+      CONTACT_EMAIL: ${MEDIAFUSION_CONTACT_EMAIL:-admin@example.com}
       SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
       API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
       LOGGING_LEVEL: INFO
       # PostgreSQL (native)
       POSTGRES_URI: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${MEDIAFUSION_DB}
-      MONGO_URI: mongodb://mongo:27017/mediafusion
       # Shared redis (use db 1)
       REDIS_URL: redis://redis:6379/1
-      # Browserless
-      PLAYWRIGHT_CDP_URL: ws://browserless:${BROWSERLESS_PORT}?blockAds=true&stealth=true
-      # Debrid
-      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
+      # Browserless / Scrapling CDP for Cloudflare-protected public indexers
+      SCRAPLING_CDP_URL: ws://browserless:3000?blockAds=true&stealth=true
+      PUBLIC_INDEXERS_LIVE_SEARCH_ENABLE_CLOUDFLARE_SOLVER: "true"
       # Don't use Torrentio
       IS_SCRAP_FROM_TORRENTIO: "true"
     ports:
       - ${MEDIAFUSION_PORT}:8000
 
-  mediafusion-dramatiq-worker:
-    image: mhdzumair/mediafusion:4.3.35
-    container_name: mediafusion-dramatiq-worker
-    restart: unless-stopped
-    command: ["dramatiq", "api.task", "-p", "1", "-t", "4"]
-    depends_on:
-      mediafusion:
-        condition: service_started
-    environment:
-      HOST_URL: ${MEDIAFUSION_HOST_URL}
-      SECRET_KEY: ${MEDIAFUSION_SECRET_KEY}
-      API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
-      MONGO_URI: mongodb://mongo:27017/mediafusion
-      LOGGING_LEVEL: INFO
-      POSTGRES_URI: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${MEDIAFUSION_DB}
-      REDIS_URL: redis://redis:6379/1
-      PLAYWRIGHT_CDP_URL: ws://browserless:${BROWSERLESS_PORT}?blockAds=true&stealth=true
-      REAL_DEBRID_API_KEY: ${REAL_DEBRID_API_KEY}
-      IS_SCRAP_FROM_TORRENTIO: "true"
-      
-  # mongo:
-  #   image: bitnami/mongodb
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./data/mongodb:/bitnami/mongodb
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    volumes:
-      - ./data/mongodb:/data/db
-
   browserless:
-    # Used by MediaFusion (Playwright CDP)
+    # Used by MediaFusion (Scrapling CDP)
     image: ghcr.io/browserless/chromium:v2.38.4
     container_name: browserless
     restart: unless-stopped
@@ -211,6 +175,19 @@ services:
     ports:
       - ${BROWSERLESS_PORT}:3000
 
+  nzbhydra2:
+    image: lscr.io/linuxserver/nzbhydra2:latest
+    container_name: nzbhydra2
+    restart: unless-stopped
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: ${TZ:-Etc/UTC}
+    volumes:
+      - ./data/nzbhydra2:/config
+    ports:
+      - ${NZBHYDRA2_PORT}:5076
+
   ###########
   ### AIO ###
   ###########
@@ -223,6 +200,8 @@ services:
         condition: service_started
       redis:
         condition: service_healthy
+      tailscale-addon-proxy:
+        condition: service_started
     environment:
       ADDON_NAME: ${AIOSTREAMS_ADDON_NAME}
       ADDON_ID: ${AIOSTREAMS_ADDON_ID}
@@ -234,6 +213,8 @@ services:
       BUILTIN_STREMTHRU_URL: http://stremthru:8080
       MEDIAFUSION_URL: http://mediafusion:8000
       MEDIAFUSION_API_PASSWORD: ${MEDIAFUSION_API_PASSWORD}
+      ADDON_PROXY: http://tailscale-addon-proxy:1055
+      ADDON_PROXY_CONFIG: ${AIOSTREAMS_ADDON_PROXY_CONFIG}
       REGEX_FILTER_ACCESS: all
       STREMTHRU_TORZ_URL: http://stremthru:8080/stremio/torz
       STREMTHRU_STORE_URL: http://stremthru:8080/stremio/store
@@ -248,8 +229,22 @@ services:
     ports:
       - ${AIOSTREAMS_PORT}:3000
 
+  tailscale-addon-proxy:
+    image: tailscale/tailscale:latest
+    container_name: tailscale-addon-proxy
+    restart: unless-stopped
+    environment:
+      TS_AUTHKEY: ${TAILSCALE_ADDON_PROXY_AUTHKEY}
+      TS_HOSTNAME: ${TAILSCALE_ADDON_PROXY_HOSTNAME}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"
+      TS_OUTBOUND_HTTP_PROXY_LISTEN: 0.0.0.0:1055
+      TS_EXTRA_ARGS: --exit-node=${TAILSCALE_ADDON_PROXY_EXIT_NODE} --exit-node-allow-lan-access
+    volumes:
+      - ./data/tailscale-addon-proxy:/var/lib/tailscale
+
   aiometadata:
-    image: ghcr.io/cedya77/aiometadata@sha256:e07705801101bf23a486975f2769bda98cb64b29d2fa9f7713d2141aad356b93
+    image: ghcr.io/cedya77/aiometadata@sha256:1dbf878e225ef78d60e4fcd44f0a7bd18127dc36d156eb891dec1a08b202a54f
     container_name: aiometadata
     restart: unless-stopped
     depends_on:
@@ -269,7 +264,7 @@ services:
       MDBLIST_API_KEY: ${MDBLIST_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       CACHE_WARMUP_UUIDS: 2c40fe2d-631a-42b7-a7ac-d860131e9803
-      CACHE_WARMUP_MODE: comprehensive
+      CACHE_WARMUP_MODE: essential
       CATALOG_LIST_ITEMS_SIZE: 40
       # disable MAL warmup (anime-related)
       MAL_WARMUP_ENABLED: "false"
@@ -311,18 +306,19 @@ services:
 
   # multi account manager
   syncio:
-    image: ghcr.io/iamneur0/syncio:private-v0.4.0
+    image: ghcr.io/iamneur0/syncio:private-v1.2.0
     container_name: syncio
     restart: unless-stopped
     environment:
       JWT_SECRET: ${SYNCIO_JWT_SECRET}
       ENCRYPTION_KEY: ${SYNCIO_ENCRYPTION_KEY}
       DATABASE_URL: "file:/app/data/sqlite.db"
+    user: "1002:1002"
     volumes:
       - ./data/syncio:/app/data
     ports:
-      - ${SYNCIO_PORT_FE}:3000
-      - ${SYNCIO_PORT_BE}:4000
+      - 3000:3000
+      - 4000:4000
 
   # Scrobble/watch-history tracking (Trakt)
   # stremio-trakt-addon:
@@ -386,17 +382,24 @@ services:
       start_period: 40s
 
   watchly:
-    image: ghcr.io/timilsinabimal/watchly:1.7.0
+    image: ghcr.io/timilsinabimal/watchly:1.9.5
     container_name: watchly
     restart: unless-stopped
     environment:
       TMDB_API_KEY: ${TMDB_API_KEY}
       TOKEN_SALT: ${WATCHLY_TOKEN_SALT}
-      HOST_NAME: ${HOST_BASE_URL}:${WATCHLY_PORT}
+      HOST_NAME: ${WATCHLY_HOST_NAME}
       TOKEN_TTL_SECONDS: 0
       AUTO_UPDATE_CATALOGS: true
+      CATALOG_REFRESH_INTERVAL_SECONDS: 86400
+      CATALOG_CACHE_TTL: 43200
+      CATALOG_STALE_TTL: 604800
+      ENABLE_TOKEN_NEGATIVE_CACHE: false
+      ENABLE_TOKEN_RATE_LIMIT: false
       PORT: 8000
-      REDIS_URL: redis://redis:6379/2
+      REDIS_URL: redis://redis:6379/3
+      DEFAULT_GEMINI_MODEL: gemini-3.1-flash-lite
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     ports:
       - ${WATCHLY_PORT}:8000
     depends_on:

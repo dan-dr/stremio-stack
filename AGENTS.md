@@ -8,6 +8,12 @@ Doing so can orphan containers, break networks, and conflict with Arcane's state
 
 ## How to manage containers
 
+## ⚠️ CRITICAL: Do NOT run Tailscale commands without explicit permission
+
+Do not run `tailscale` commands, including `tailscale serve`, `tailscale funnel`,
+`tailscale up`, `tailscale down`, or `tailscale set`, unless the user explicitly
+asks for that specific Tailscale action in the current conversation.
+
 ### To restart a single container
 ```bash
 sudo docker restart <container_name>

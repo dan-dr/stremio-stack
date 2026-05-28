@@ -15,7 +15,9 @@
       {
         "id": "realdebrid",
         "enabled": true,
-        "credentials": {}
+        "credentials": {
+          "apiKey": "4EX3MALYLNYFASVABD2VO4WPJ5JG3AIDC4X7HWEAKQVTB2VM265A"
+        }
       },
       {
         "id": "alldebrid",
@@ -95,7 +97,7 @@
         "enabled": true,
         "options": {
           "name": "StremThru Torz",
-          "timeout": 5000,
+          "timeout": 15000,
           "resources": [
             "stream"
           ],
@@ -177,7 +179,7 @@
         "enabled": true,
         "options": {
           "name": "Jackettio",
-          "timeout": 10000,
+          "timeout": 15000,
           "resources": [
             "stream"
           ],
@@ -229,8 +231,8 @@
     "formatter": {
       "id": "custom",
       "definition": {
-        "name": "{stream.quality::exists::and::stream.quality::title::~Remux[\"🥇 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=BluRay[\"🥈 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=Blu-ray[\"🥈 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEB-DL[\"🥈 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEBDL[\"🥈 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEBRip[\"🥉 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=HDRip[\"🥉 \"||\"\"]}{stream.edition::exists[\"{stream.edition} · \"||\"\"]}{stream.resolution::=2160p[\"4K\"||\"\"]}{stream.resolution::=1080p[\"1080p\"||\"\"]}{stream.resolution::=720p[\"720p\"||\"\"]}{stream.visualTags::exists[\" | {stream.visualTags::first}\"||\"\"]}{service.cached::istrue[\" | ⚡\"||\" | ⏳\"]}{stream.type::=debrid[\"RD\"||\"\"]}{stream.type::=usenet[\"NZB\"||\"\"]}",
-        "description": "🎥  {stream.size::bytes}{stream.bitrate::exists[\" | {stream.bitrate::bitrate}\"||\"\"]}{stream.quality::exists[\" | {stream.quality::title}\"||\"\"]}{stream.visualTags::exists[\" | {stream.visualTags::first}\"||\"\"]} | {stream.encode}\n🔊 {stream.audioTags::join(' | ')} | {stream.audioChannels::join(' | ')}{stream.languageEmojis::exists[\" | {stream.languageEmojis::join(' ')}\"||\"\"]}\n───────────────────\n{stream.seasonEpisode::exists[\"{stream.seasonEpisode::join(' ')} \"||\"\"]}{stream.year::exists[\"{stream.year}\"||\"\"]}{stream.releaseGroup::exists[\" | {stream.releaseGroup}\"||\"\"]}{addon.name::exists[\" | {addon.name}\"||\"\"]}{service.shortName::exists[\" | {service.shortName}\"||\"\"]}{stream.indexer::exists[\" | {stream.indexer}\"||\"\"]}{stream.age::exists[\" | ⏱️ {stream.age}\"||\"\"]}\n{stream.message::exists[\"ℹ️ {stream.message}\"||\"\"]}"
+        "name": "{stream.quality::exists::and::stream.quality::title::~Remux[\"\ud83e\udd47 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=BluRay[\"\ud83e\udd48 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=Blu-ray[\"\ud83e\udd48 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEB-DL[\"\ud83e\udd48 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEBDL[\"\ud83e\udd48 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=WEBRip[\"\ud83e\udd49 \"||\"\"]}{stream.quality::exists::and::stream.quality::title::=HDRip[\"\ud83e\udd49 \"||\"\"]}{stream.edition::exists[\"{stream.edition} \u00b7 \"||\"\"]}{stream.resolution::=2160p[\"4K\"||\"\"]}{stream.resolution::=1080p[\"1080p\"||\"\"]}{stream.resolution::=720p[\"720p\"||\"\"]}{stream.visualTags::exists[\" | {stream.visualTags::first}\"||\"\"]}{service.cached::istrue[\" | \u26a1\"||\" | \u23f3\"]}{stream.type::=debrid[\"RD\"||\"\"]}{stream.type::=usenet[\"NZB\"||\"\"]}",
+        "description": "\ud83c\udfa5  {stream.size::bytes}{stream.bitrate::exists[\" | {stream.bitrate::bitrate}\"||\"\"]}{stream.quality::exists[\" | {stream.quality::title}\"||\"\"]}{stream.visualTags::exists[\" | {stream.visualTags::first}\"||\"\"]} | {stream.encode}\n\ud83d\udd0a {stream.audioTags::join(' | ')} | {stream.audioChannels::join(' | ')}{stream.languageEmojis::exists[\" | {stream.languageEmojis::join(' ')}\"||\"\"]}\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n{stream.seasonEpisode::exists[\"{stream.seasonEpisode::join(' ')} \"||\"\"]}{stream.year::exists[\"{stream.year}\"||\"\"]}{stream.releaseGroup::exists[\" | {stream.releaseGroup}\"||\"\"]}{addon.name::exists[\" | {addon.name}\"||\"\"]}{service.shortName::exists[\" | {service.shortName}\"||\"\"]}{stream.indexer::exists[\" | {stream.indexer}\"||\"\"]}{stream.age::exists[\" | \u23f1\ufe0f {stream.age}\"||\"\"]}\n{stream.message::exists[\"\u2139\ufe0f {stream.message}\"||\"\"]}"
       }
     },
     "preferredQualities": [
@@ -479,8 +481,7 @@
         },
         {
           "addons": [
-            "23a",
-            "da0"
+            "23a"
           ],
           "condition": "(count(resolution(cached(totalStreams), '2160p')) < 5 or count(resolution(cached(totalStreams), '1080p')) < 5 or count(resolution(cached(totalStreams), '720p')) < 5) and totalTimeTaken < 10000"
         },
@@ -490,6 +491,12 @@
             "705"
           ],
           "condition": "(count(resolution(cached(totalStreams), '2160p')) < 5 or count(resolution(cached(totalStreams), '1080p')) < 5 or count(resolution(cached(totalStreams), '720p')) < 5) and totalTimeTaken < 10000"
+        },
+        {
+          "addons": [
+            "da0"
+          ],
+          "condition": "(count(resolution(cached(totalStreams), '2160p')) < 3 or count(resolution(cached(totalStreams), '1080p')) < 3 or count(resolution(cached(totalStreams), '720p')) < 3) and totalTimeTaken < 10000"
         }
       ],
       "behaviour": "parallel"
@@ -558,10 +565,10 @@
     "autoRemoveDownloads": true,
     "addonName": "AIO DDyo",
     "addonLogo": "https://raw.githubusercontent.com/dan-dr/stremio-stack/refs/heads/master/aio_ddyo.jpg",
-    "tmdbApiKey": "<template_placeholder>",
-    "tmdbAccessToken": "<template_placeholder>",
-    "tvdbApiKey": "<template_placeholder>",
-    "rpdbApiKey": "<template_placeholder>",
+    "tmdbApiKey": "715f2a43837f6362f12c826539eb29c0",
+    "tmdbAccessToken": "eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI3MTVmMmE0MzgzN2Y2MzYyZjEyYzgyNjUzOWViMjljMCIsIm5iZiI6MTc2NDA5NDQwNS40NzgwMDAyLCJzdWIiOiI2OTI1ZjFjNTMyODQ1YjM4MTEzMGNhOTIiLCJzY29wZXMiOlsiYXBpX3JlYWQiXSwidmVyc2lvbiI6MX0.YxpPYsJqJ2ymrGp-RD3a3EFuDMvScSjnHvBNcQiWcTY",
+    "tvdbApiKey": "7dfe63a3-7835-4210-b05d-2e227e0cebd7",
+    "rpdbApiKey": "t0-free-rpdb",
     "requiredRegexPatterns": [],
     "preferredRegexPatterns": [
       {
