@@ -180,8 +180,8 @@ services:
     container_name: nzbhydra2
     restart: unless-stopped
     environment:
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
+      PUID: ${PUID:-1002}
+      PGID: ${PGID:-1002}
       TZ: ${TZ:-Etc/UTC}
     volumes:
       - ./data/nzbhydra2:/config
@@ -208,6 +208,7 @@ services:
       PORT: 3000
       BASE_URL: ${AIOSTREAMS_BASE_URL}
       SECRET_KEY: ${AIOSTREAMS_SECRET_KEY}
+      NZB_PROXY_PUBLIC_ENABLED: "true"
       ADDON_PASSWORD: ${AIOSTREAMS_ADDON_PASSWORD}
       DATABASE_URI: sqlite:///app/data/db.sqlite
       BUILTIN_STREMTHRU_URL: http://stremthru:8080
