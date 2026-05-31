@@ -1,0 +1,59 @@
+name: Arcane GitOps deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - compose.yaml
+      - .env.example
+      - .github/dependabot.yml
+
+jobs:
+  deploy:
+    runs-on:
+      - self-hosted
+      - arcane
+
+    steps:
+      - name: Trigger Arcane GitOps sync
+        env:
+          ARCANE_URL: ${{ vars.ARCANE_URL || 'http://localhost:3552' }}
+          ARCANE_ENVIRONMENT_ID: ${{ vars.ARCANE_ENVIRONMENT_ID || '0' }}
+          ARCANE_GITOPS_SYNC_ID: ${{ vars.ARCANE_GITOPS_SYNC_ID }}
+          ARCANE_API_KEY: ${{ secrets.ARCANE_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ARCANE_GITOPS_SYNC_ID}" ]; then
+            echo "ARCANE_GITOPS_SYNC_ID repository variable is required" >&2
+            exit 1
+          fi
+
+          if [ -z "${ARCANE_API_KEY}" ]; then
+            echo "ARCANE_API_KEY repository secret is required" >&2
+            exit 1
+          fi
+
+          curl -fsS -X POST \
+            -H "X-API-Key: ${ARCANE_API_KEY}" \
+            "${ARCANE_URL}/api/environments/${ARCANE_ENVIRONMENT_ID}/gitops-syncs/${ARCANE_GITOPS_SYNC_ID}/sync"
+
+      - name: Redeploy Stremio project
+        env:
+          ARCANE_URL: ${{ vars.ARCANE_URL || 'http://localhost:3552' }}
+          ARCANE_ENVIRONMENT_ID: ${{ vars.ARCANE_ENVIRONMENT_ID || '0' }}
+          ARCANE_PROJECT_ID: ${{ vars.ARCANE_PROJECT_ID || '76cb78da-4477-410b-a04c-c4cbb811fdfb' }}
+          ARCANE_API_KEY: ${{ secrets.ARCANE_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${ARCANE_API_KEY}" ]; then
+            echo "ARCANE_API_KEY repository secret is required" >&2
+            exit 1
+          fi
+
+          curl -fsS -X POST \
+            -H "X-API-Key: ${ARCANE_API_KEY}" \
+            "${ARCANE_URL}/api/environments/${ARCANE_ENVIRONMENT_ID}/projects/${ARCANE_PROJECT_ID}/redeploy"
