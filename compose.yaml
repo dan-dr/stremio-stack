@@ -111,7 +111,7 @@ services:
   #     - ${ZILEAN_PORT}:8181
 
   stremthru:
-    image: muniftanjim/stremthru:0.96.3
+    image: muniftanjim/stremthru:0.102.0
     container_name: stremthru
     restart: unless-stopped
     environment:
