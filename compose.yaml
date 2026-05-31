@@ -393,7 +393,7 @@ services:
       start_period: 40s
 
   watchly:
-    image: ghcr.io/timilsinabimal/watchly:1.9.5
+    image: ghcr.io/timilsinabimal/watchly:1.10.0
     container_name: watchly
     restart: unless-stopped
     environment:
