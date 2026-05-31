@@ -204,6 +204,7 @@ services:
       INDEXER_MANAGER_INDEXERS: "-1"
       TMDB_API_KEY: ${TMDB_API_KEY}
       TVDB_API_KEY: ${TVDB_API_KEY}
+      STREAMING_MODE: ${USENETSTREAMER_STREAMING_MODE:-native}
     volumes:
       - ./data/usenetstreamer:/data/config
     ports:
