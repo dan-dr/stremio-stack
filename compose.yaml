@@ -176,7 +176,7 @@ services:
       - ${BROWSERLESS_PORT}:3000
 
   nzbhydra2:
-    image: lscr.io/linuxserver/nzbhydra2:latest
+    image: lscr.io/linuxserver/nzbhydra2:8.8.1
     container_name: nzbhydra2
     restart: unless-stopped
     environment:
@@ -189,7 +189,7 @@ services:
       - ${NZBHYDRA2_PORT}:5076
 
   usenetstreamer:
-    image: ghcr.io/sanket9225/usenetstreamer:latest
+    image: ghcr.io/sanket9225/usenetstreamer:1.7.12
     container_name: usenetstreamer
     restart: unless-stopped
     depends_on:
@@ -253,7 +253,7 @@ services:
       - ${AIOSTREAMS_PORT}:3000
 
   tailscale-addon-proxy:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.98.4
     container_name: tailscale-addon-proxy
     restart: unless-stopped
     environment:
@@ -267,7 +267,7 @@ services:
       - ./data/tailscale-addon-proxy:/var/lib/tailscale
 
   aiometadata:
-    image: ghcr.io/cedya77/aiometadata:latest
+    image: ghcr.io/cedya77/aiometadata@sha256:4e6a01dc6d5e1e18d2fca0283e17a969fd33c10365083717488e67b785c98992
     container_name: aiometadata
     restart: unless-stopped
     depends_on:
