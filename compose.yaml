@@ -297,18 +297,6 @@ services:
     ports:
       - ${AIOMETADATA_PORT}:3232
 
-  aiolists:
-    image: stremio-stack-aiolists:latest
-    container_name: aiolists
-    restart: unless-stopped
-    environment:
-      PORT: 7000
-      NODE_ENV: production
-      TMDB_BEARER_TOKEN: ${TMDB_BEARER_TOKEN}
-      TMDB_REDIRECT_URI: ${TMDB_REDIRECT_URI}
-    ports:
-      - ${AIOLISTS_PORT}:7000
-
   ### MISC ###
   # stremio-ai-search:
   #   image: stremio-stack-stremio-ai-search:latest
