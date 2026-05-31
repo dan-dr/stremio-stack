@@ -192,7 +192,7 @@ services:
   ### AIO ###
   ###########
   aiostreams:
-    image: ghcr.io/viren070/aiostreams:v2.22.0
+    image: ghcr.io/viren070/aiostreams:v2.30.2
     container_name: aiostreams
     restart: unless-stopped
     depends_on:
@@ -245,7 +245,7 @@ services:
       - ./data/tailscale-addon-proxy:/var/lib/tailscale
 
   aiometadata:
-    image: ghcr.io/cedya77/aiometadata@sha256:1dbf878e225ef78d60e4fcd44f0a7bd18127dc36d156eb891dec1a08b202a54f
+    image: ghcr.io/cedya77/aiometadata:latest
     container_name: aiometadata
     restart: unless-stopped
     depends_on:

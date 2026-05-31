@@ -11,3 +11,22 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+    groups:
+      infra:
+        patterns:
+          - "postgres"
+          - "redis"
+          - "ghcr.io/browserless/chromium"
+          - "lscr.io/linuxserver/nzbhydra2"
+          - "tailscale/tailscale"
+      addons:
+        patterns:
+          - "ghcr.io/g0ldyy/comet"
+          - "muniftanjim/stremthru"
+          - "mhdzumair/mediafusion"
+          - "ghcr.io/viren070/aiostreams"
+          - "ghcr.io/cedya77/aiometadata"
+          - "ghcr.io/iamneur0/syncio"
+          - "registry.gitlab.com/deejay189393/streams-prefetcher"
+          - "ghcr.io/timilsinabimal/watchly"
+          - "stremio-stack-aiolists"
