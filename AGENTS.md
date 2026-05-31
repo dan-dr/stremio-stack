@@ -54,6 +54,11 @@ sudo docker stop <name> && sudo docker rm <name>
 - `initdb/` — Postgres init scripts
 - `data/` — persistent volumes (created at runtime)
 
+## File ownership
+- Arcane reads and writes this project as the `arcane` user. After editing files Arcane uses
+  (`compose.yaml`, `.env`, `.env.example`, `.github/dependabot.yml`, and related config),
+  make sure they remain owned by `arcane:arcane`.
+
 ## Container quick reference
 | Container | Port (internal) | Purpose |
 |---|---|---|

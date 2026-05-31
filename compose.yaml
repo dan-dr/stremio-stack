@@ -188,6 +188,27 @@ services:
     ports:
       - ${NZBHYDRA2_PORT}:5076
 
+  usenetstreamer:
+    image: ghcr.io/sanket9225/usenetstreamer:latest
+    container_name: usenetstreamer
+    restart: unless-stopped
+    depends_on:
+      - nzbhydra2
+    environment:
+      ADDON_BASE_URL: ${USENETSTREAMER_BASE_URL}
+      ADDON_SHARED_SECRET: ${USENETSTREAMER_SHARED_SECRET}
+      CONFIG_DIR: /data/config
+      INDEXER_MANAGER: nzbhydra
+      INDEXER_MANAGER_URL: http://nzbhydra2:5076
+      INDEXER_MANAGER_API_KEY: ${NZBHYDRA2_API_KEY:-}
+      INDEXER_MANAGER_INDEXERS: "-1"
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TVDB_API_KEY: ${TVDB_API_KEY}
+    volumes:
+      - ./data/usenetstreamer:/data/config
+    ports:
+      - ${USENETSTREAMER_PORT}:7000
+
   ###########
   ### AIO ###
   ###########
@@ -209,7 +230,7 @@ services:
       BASE_URL: ${AIOSTREAMS_BASE_URL}
       SECRET_KEY: ${AIOSTREAMS_SECRET_KEY}
       NZB_PROXY_PUBLIC_ENABLED: "true"
-      ADDON_PASSWORD: ${AIOSTREAMS_ADDON_PASSWORD}
+      AIOSTREAMS_AUTH: ${AIOSTREAMS_AUTH:-}
       DATABASE_URI: sqlite:///app/data/db.sqlite
       BUILTIN_STREMTHRU_URL: http://stremthru:8080
       MEDIAFUSION_URL: http://mediafusion:8000
@@ -258,7 +279,7 @@ services:
       LOG_LEVEL: info
       DATABASE_URI: sqlite://addon/data/db.sqlite
       REDIS_URL: redis://redis:6379/0
-      TMDB_API: ${TMDB_API_KEY}
+      TMDB_API_KEY: ${TMDB_API_KEY}
       TVDB_API_KEY: ${TVDB_API_KEY}
       FANART_API_KEY: ${FANART_API_KEY}
       RPDB_API_KEY: ${RPDB_API_KEY}

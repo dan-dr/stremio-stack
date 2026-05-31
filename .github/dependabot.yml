@@ -30,3 +30,4 @@ updates:
           - "registry.gitlab.com/deejay189393/streams-prefetcher"
           - "ghcr.io/timilsinabimal/watchly"
           - "stremio-stack-aiolists"
+          - "ghcr.io/sanket9225/usenetstreamer"
