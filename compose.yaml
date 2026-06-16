@@ -31,7 +31,7 @@ services:
     networks:
       default:
         aliases:
-          - server
+          - ddyo
 
   # ---------------------------------------------------------------------------
   # Shared infra (consolidated)
@@ -273,7 +273,7 @@ services:
       REGEX_FILTER_ACCESS: all
       STREMTHRU_TORZ_URL: http://stremthru:8080/stremio/torz
       STREMTHRU_STORE_URL: http://stremthru:8080/stremio/store
-      STREAM_URL_MAPPINGS: '{"http://stremthru:8080":"http://server:8447","http://mediafusion:8000":"http://server:8001","http://comet:8000":"http://server:8989"}'
+      STREAM_URL_MAPPINGS: '{"http://stremthru:8080":"http://ddyo:8447","http://mediafusion:8000":"http://ddyo:8001","http://comet:8000":"http://ddyo:8989"}'
       # Redis for persistent caching (db 2 - db 0 is aiometadata, db 1 is mediafusion)
       REDIS_URI: redis://redis:6379/2
       # Cache streams for 48 hours (172800s) to benefit from daily prefetcher runs
