@@ -108,7 +108,7 @@ services:
   # Stream sources (AIOStreams upstreams)
   # ---------------------------------------------------------------------------
   comet:
-    image: ghcr.io/g0ldyy/comet@sha256:7ab050b1ab0f9a6e01981f14ba13f8bf1fd508914d2aa0bb83909b0ba2e55138
+    image: ghcr.io/g0ldyy/comet@sha256:cb7f5ff63863e3bed9b2ea580cdfc70891efc6effbbe0e9787e3f28af788ac4a
     container_name: comet
     restart: unless-stopped
     depends_on:
@@ -143,7 +143,7 @@ services:
   #     - ${ZILEAN_PORT}:8181
 
   stremthru:
-    image: muniftanjim/stremthru:0.102.0
+    image: muniftanjim/stremthru:0.102.2
     container_name: stremthru
     restart: unless-stopped
     environment:
@@ -194,7 +194,7 @@ services:
 
   browserless:
     # Used by MediaFusion (Scrapling CDP)
-    image: ghcr.io/browserless/chromium:v2.50.1
+    image: ghcr.io/browserless/chromium:v2.52.2
     container_name: browserless
     restart: unless-stopped
     healthcheck:
@@ -208,7 +208,7 @@ services:
       - ${BROWSERLESS_PORT}:3000
 
   nzbhydra2:
-    image: lscr.io/linuxserver/nzbhydra2:8.8.1
+    image: lscr.io/linuxserver/nzbhydra2:8.8.3
     container_name: nzbhydra2
     restart: unless-stopped
     environment:
@@ -221,7 +221,7 @@ services:
       - ${NZBHYDRA2_PORT}:5076
 
   usenetstreamer:
-    image: ghcr.io/sanket9225/usenetstreamer:1.7.12
+    image: ghcr.io/sanket9225/usenetstreamer:1.8.0
     container_name: usenetstreamer
     restart: unless-stopped
     depends_on:
@@ -246,7 +246,7 @@ services:
   ### AIO ###
   ###########
   aiostreams:
-    image: ghcr.io/viren070/aiostreams:v2.30.2
+    image: ghcr.io/viren070/aiostreams:v2.30.3
     container_name: aiostreams
     restart: unless-stopped
     depends_on:
@@ -299,7 +299,7 @@ services:
       - ./data/tailscale-addon-proxy:/var/lib/tailscale
 
   aiometadata:
-    image: ghcr.io/cedya77/aiometadata@sha256:4e6a01dc6d5e1e18d2fca0283e17a969fd33c10365083717488e67b785c98992
+    image: ghcr.io/cedya77/aiometadata@sha256:52e8106b56e74c5d2a04b7099597208e685fb578ac9cc4481a2b130876ac011e
     container_name: aiometadata
     restart: unless-stopped
     depends_on:
@@ -425,7 +425,7 @@ services:
       start_period: 40s
 
   watchly:
-    image: ghcr.io/timilsinabimal/watchly:1.10.0
+    image: ghcr.io/timilsinabimal/watchly:1.11.1
     container_name: watchly
     restart: unless-stopped
     environment:
