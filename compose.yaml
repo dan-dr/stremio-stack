@@ -1,6 +1,38 @@
 name: stremio
 
 services:
+  compossador:
+    image: ghcr.io/dan-dr/compossador:latest
+    container_name: compossador
+    restart: unless-stopped
+    depends_on:
+      comet:
+        condition: service_started
+      stremthru:
+        condition: service_started
+      mediafusion:
+        condition: service_started
+      nzbhydra2:
+        condition: service_started
+      usenetstreamer:
+        condition: service_started
+      aiostreams:
+        condition: service_started
+      aiometadata:
+        condition: service_started
+      syncio:
+        condition: service_started
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DISCOVERY_INTERVAL: 30
+      INCLUDE_SERVICES: ${COMPOSSADOR_INCLUDE_SERVICES:-comet,stremthru,mediafusion,nzbhydra2,usenetstreamer,aiostreams,aiometadata,syncio}
+      EXCLUDE_SERVICES: ${COMPOSSADOR_EXCLUDE_SERVICES:-}
+    networks:
+      default:
+        aliases:
+          - ddyo
+
   # ---------------------------------------------------------------------------
   # Shared infra (consolidated)
   # ---------------------------------------------------------------------------
