@@ -221,7 +221,7 @@ services:
       - ${NZBHYDRA2_PORT}:5076
 
   usenetstreamer:
-    image: ghcr.io/sanket9225/usenetstreamer:1.7.12
+    image: ghcr.io/sanket9225/usenetstreamer:1.8.0
     container_name: usenetstreamer
     restart: unless-stopped
     depends_on:
