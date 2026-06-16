@@ -299,7 +299,7 @@ services:
       - ./data/tailscale-addon-proxy:/var/lib/tailscale
 
   aiometadata:
-    image: ghcr.io/cedya77/aiometadata@sha256:4e6a01dc6d5e1e18d2fca0283e17a969fd33c10365083717488e67b785c98992
+    image: ghcr.io/cedya77/aiometadata@sha256:52e8106b56e74c5d2a04b7099597208e685fb578ac9cc4481a2b130876ac011e
     container_name: aiometadata
     restart: unless-stopped
     depends_on:
