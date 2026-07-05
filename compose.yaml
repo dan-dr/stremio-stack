@@ -246,7 +246,7 @@ services:
   ### AIO ###
   ###########
   aiostreams:
-    image: ghcr.io/viren070/aiostreams:v2.30.3
+    image: ghcr.io/viren070/aiostreams:v2.30.5
     container_name: aiostreams
     restart: unless-stopped
     depends_on:
