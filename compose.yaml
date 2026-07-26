@@ -164,7 +164,7 @@ services:
   ### MEDIAFUSION ###
   ###################
   mediafusion:
-    image: mhdzumair/mediafusion:5.5.2
+    image: mhdzumair/mediafusion:6.0.1
     container_name: mediafusion
     restart: unless-stopped
     depends_on:
