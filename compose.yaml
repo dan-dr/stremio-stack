@@ -194,7 +194,7 @@ services:
 
   browserless:
     # Used by MediaFusion (Scrapling CDP)
-    image: ghcr.io/browserless/chromium:v2.55.2
+    image: ghcr.io/browserless/chromium:v2.55.3
     container_name: browserless
     restart: unless-stopped
     healthcheck:
