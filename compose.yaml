@@ -208,7 +208,7 @@ services:
       - ${BROWSERLESS_PORT}:3000
 
   nzbhydra2:
-    image: lscr.io/linuxserver/nzbhydra2:8.8.5
+    image: lscr.io/linuxserver/nzbhydra2:8.9.0
     container_name: nzbhydra2
     restart: unless-stopped
     environment:
