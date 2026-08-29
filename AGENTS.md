@@ -70,4 +70,5 @@ sudo docker stop <name> && sudo docker rm <name>
 | aiometadata | 3232 | Metadata enrichment |
 | stremio-postgres | 5432 | Shared PostgreSQL |
 | stremio-redis | 6379 | Shared Redis |
-| browserless | 3000 | Headless Chrome for MediaFusion |
+| mediafusion-worker | - | MediaFusion background jobs |
+| trawl | 8191 | Cloudflare/JavaScript challenge solver for MediaFusion |

@@ -40,7 +40,8 @@ https://cinebye.elfhosted.com/
 - `aiometadata` — metadata enrichment
 - `stremio-postgres` — shared PostgreSQL
 - `stremio-redis` — shared Redis
-- `browserless` — headless Chrome for MediaFusion
+- `mediafusion-worker` — MediaFusion background jobs
+- `trawl` — Cloudflare/JavaScript challenge solver for MediaFusion
 
 ## Key Files
 
