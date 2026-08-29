@@ -108,7 +108,7 @@ services:
   # Stream sources (AIOStreams upstreams)
   # ---------------------------------------------------------------------------
   comet:
-    image: ghcr.io/g0ldyy/comet@sha256:cb7f5ff63863e3bed9b2ea580cdfc70891efc6effbbe0e9787e3f28af788ac4a
+    image: ghcr.io/g0ldyy/comet@sha256:dca62133336e02784d02aaad861381820674d1c8e3e98a03797610b81ee4defe
     container_name: comet
     restart: unless-stopped
     depends_on:
@@ -279,7 +279,7 @@ services:
   ### AIO ###
   ###########
   aiostreams:
-    image: ghcr.io/viren070/aiostreams:v2.30.6
+    image: ghcr.io/viren070/aiostreams:v2.33.2
     container_name: aiostreams
     restart: unless-stopped
     depends_on:
