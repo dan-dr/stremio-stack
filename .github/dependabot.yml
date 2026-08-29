@@ -23,8 +23,6 @@ updates:
       addons:
         patterns:
           - "ghcr.io/g0ldyy/comet"
-          - "muniftanjim/stremthru"
-          - "mhdzumair/mediafusion"
           - "ghcr.io/viren070/aiostreams"
           - "ghcr.io/cedya77/aiometadata"
           - "ghcr.io/iamneur0/syncio"
