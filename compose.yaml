@@ -143,7 +143,7 @@ services:
   #     - ${ZILEAN_PORT}:8181
 
   stremthru:
-    image: muniftanjim/stremthru:0.102.2
+    image: muniftanjim/stremthru:0.103.2
     container_name: stremthru
     restart: unless-stopped
     environment:
@@ -194,7 +194,7 @@ services:
 
   browserless:
     # Used by MediaFusion (Scrapling CDP)
-    image: ghcr.io/browserless/chromium:v2.55.2
+    image: ghcr.io/browserless/chromium:v2.55.4
     container_name: browserless
     restart: unless-stopped
     healthcheck:
@@ -208,7 +208,7 @@ services:
       - ${BROWSERLESS_PORT}:3000
 
   nzbhydra2:
-    image: lscr.io/linuxserver/nzbhydra2:8.8.5
+    image: lscr.io/linuxserver/nzbhydra2:8.9.0
     container_name: nzbhydra2
     restart: unless-stopped
     environment:
@@ -221,7 +221,7 @@ services:
       - ${NZBHYDRA2_PORT}:5076
 
   usenetstreamer:
-    image: ghcr.io/sanket9225/usenetstreamer:1.8.3
+    image: ghcr.io/sanket9225/usenetstreamer:1.8.4
     container_name: usenetstreamer
     restart: unless-stopped
     depends_on:
@@ -285,7 +285,7 @@ services:
       - ${AIOSTREAMS_PORT}:3000
 
   tailscale-addon-proxy:
-    image: tailscale/tailscale:v1.102.2
+    image: tailscale/tailscale:v1.102.3
     container_name: tailscale-addon-proxy
     restart: unless-stopped
     environment:
@@ -425,7 +425,7 @@ services:
       start_period: 40s
 
   watchly:
-    image: ghcr.io/timilsinabimal/watchly:1.11.1
+    image: ghcr.io/timilsinabimal/watchly:1.12.0
     container_name: watchly
     restart: unless-stopped
     environment:
