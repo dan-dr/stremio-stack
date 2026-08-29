@@ -143,7 +143,7 @@ services:
   #     - ${ZILEAN_PORT}:8181
 
   stremthru:
-    image: muniftanjim/stremthru:0.103.2
+    image: muniftanjim/stremthru:0.104.0
     container_name: stremthru
     restart: unless-stopped
     environment:
@@ -164,7 +164,7 @@ services:
   ### MEDIAFUSION ###
   ###################
   mediafusion:
-    image: mhdzumair/mediafusion:6.1.3
+    image: mhdzumair/mediafusion:6.1.5
     container_name: mediafusion
     restart: unless-stopped
     depends_on:
@@ -198,7 +198,7 @@ services:
       start_period: 30s
 
   mediafusion-worker:
-    image: mhdzumair/mediafusion:6.1.3
+    image: mhdzumair/mediafusion:6.1.5
     container_name: mediafusion-worker
     command: ["/usr/local/bin/mediafusion-worker"]
     restart: unless-stopped
