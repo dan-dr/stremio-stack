@@ -143,7 +143,7 @@ services:
   #     - ${ZILEAN_PORT}:8181
 
   stremthru:
-    image: muniftanjim/stremthru:0.102.2
+    image: muniftanjim/stremthru:0.103.2
     container_name: stremthru
     restart: unless-stopped
     environment:
