@@ -428,11 +428,12 @@ services:
 
   # ---------------------------------------------------------------------------
   # Streams Prefetcher - pre-cache addon streams for instant playback
-  # Schedule managed externally via OpenClaw cron jobs
+  # Disabled by default; scheduled/manual runs must enable the prefetch profile.
   # ---------------------------------------------------------------------------
   streams-prefetcher:
     image: registry.gitlab.com/deejay189393/streams-prefetcher:latest
     container_name: streams-prefetcher
+    profiles: ["prefetch"]
     restart: unless-stopped
     environment:
       TZ: Asia/Jerusalem
