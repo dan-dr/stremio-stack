@@ -223,7 +223,7 @@ services:
       IS_SCRAP_FROM_TORRENTIO: "true"
 
   trawl:
-    image: ghcr.io/germondai/trawl:1.4.2
+    image: ghcr.io/germondai/trawl:1.5.0
     container_name: trawl
     restart: unless-stopped
     depends_on:
