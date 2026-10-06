@@ -1,6 +1,34 @@
 name: stremio
 
 services:
+  cache-reset:
+    build:
+      context: https://github.com/dan-dr/stremio-cache-reset.git#8633c9367ac2a1da0e94f5e95aba8486fd0e47c9
+    image: stremio-cache-reset:1.0.0
+    pull_policy: never
+    container_name: stremio-cache-reset
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      CACHE_RESET_TOKEN: ${CACHE_RESET_TOKEN:?Set CACHE_RESET_TOKEN in .env}
+      BASE_URL: ${CACHE_RESET_BASE_URL:?Set CACHE_RESET_BASE_URL in .env}
+      BIND_HOST: 0.0.0.0
+      PORT: "3141"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_DB: "2"
+    ports:
+      - "${CACHE_RESET_BIND_IP:-127.0.0.1}:3141:3141"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+
   compossador:
     image: ghcr.io/dan-dr/compossador:latest
     container_name: compossador

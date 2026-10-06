@@ -61,3 +61,28 @@ sudo docker restart <container_name>
 ```
 
 - If you change `compose.yaml` or configuration values, redeploy from the Arcane UI or API.
+
+## Clear stream cache addon
+
+`cache-reset` builds the public [stremio-cache-reset addon](https://github.com/dan-dr/stremio-cache-reset)
+from a pinned commit. Set `CACHE_RESET_TOKEN`, `CACHE_RESET_BASE_URL` and
+`CACHE_RESET_BIND_IP` in the private `.env`; never publish the token. Preserve an
+existing token and base URL when migrating so installed links keep working.
+The default bind address is loopback; remote players need a reachable host address.
+
+Build the image before deploying, through Arcane's Build action or this build-only command:
+
+```nu
+docker compose build cache-reset
+```
+
+Sync the GitOps project, then apply the configuration through Arcane. Do not run
+Compose up/down/restart directly. Open `CACHE_RESET_BASE_URL/TOKEN` to install in
+Stremio. The addon uses the existing `redis` service, database 2, and plays a status
+video after removing matching episode/movie stream caches. See the addon README
+for exact cache scope, AIOStreams passthrough settings and testing instructions.
+
+When migrating from a standalone process, stop it only after the new image passes
+a temporary-port smoke test. Free port 3141 immediately before the Arcane deployment,
+verify the container is healthy and test a reset, then disable the old service.
+Keep the old configuration for rollback.

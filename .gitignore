@@ -1,3 +1,6 @@
 .env
 data
 .DS_Store
+
+# Legacy standalone cache-reset files can contain private deployment details.
+cache-reset/
