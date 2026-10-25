@@ -346,7 +346,7 @@ services:
       - ${AIOSTREAMS_PORT}:3000
 
   tailscale-addon-proxy:
-    image: tailscale/tailscale:v1.102.5
+    image: tailscale/tailscale:v1.104.1
     container_name: tailscale-addon-proxy
     restart: unless-stopped
     environment:
